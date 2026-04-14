@@ -6,10 +6,18 @@
     "orientation": "portrait",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kautikbhardwaj.fileiqapp"
+      "bundleIdentifier": "com.kautikbhardwaj.fileiqapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.kautikbhardwaj.fileiqapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e9c65da4-f3a1-4cf3-bdaf-86072f431af1"
+      }
     }
   }
 }
