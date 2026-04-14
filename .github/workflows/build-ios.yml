@@ -78,38 +78,34 @@ jobs:
           echo "APP_PATH=$APP" >> $GITHUB_ENV
           echo "Found: $APP"
 
-      - name: Boot available simulator
+      - name: Boot simulator and take screenshots
         run: |
-          UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "Plus\|Pro" | head -1 | awk -F'[()]' '{print $2}')
-          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "Booting simulator: $UDID"
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          echo "Simulator booted"
+          # List all available simulators for debugging
+          xcrun simctl list devices available
 
-      - name: Install app on simulator
-        run: |
-          xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
-          echo "App installed"
+          # Get first available iPhone UDID
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone" | grep -v "unavailable" | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1)
+          echo "Using simulator: $UDID"
 
-      - name: Launch app and wait
-        run: |
-          BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier)
+          # Boot it
+          xcrun simctl boot "$UDID"
+          sleep 5
+
+          # Install and launch app
+          BUNDLE_ID=$(defaults read "$(pwd)/$APP_PATH/Info" CFBundleIdentifier 2>/dev/null || echo "org.reactjs.native.example.FileIQBuild")
           echo "Bundle ID: $BUNDLE_ID"
-          xcrun simctl launch "$SIMULATOR_UDID" "$BUNDLE_ID"
-          echo "App launched — waiting 8 seconds for it to load..."
-          sleep 8
+          xcrun simctl install "$UDID" "$APP_PATH"
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          sleep 10
 
-      - name: Take screenshots
-        run: |
+          # Take screenshots
           mkdir -p screenshots
-          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen1-launch.png
+          xcrun simctl io "$UDID" screenshot screenshots/screen1.png
           sleep 3
-          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen2-home.png
+          xcrun simctl io "$UDID" screenshot screenshots/screen2.png
           sleep 3
-          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen3-view.png
-          echo "Screenshots taken"
-          ls -lh screenshots/
+          xcrun simctl io "$UDID" screenshot screenshots/screen3.png
+          echo "Screenshots done"
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
@@ -118,18 +114,11 @@ jobs:
           path: screenshots/
           retention-days: 7
 
-      - name: Package .app for download
-        run: |
-          mkdir -p output
-          cp -r "$APP_PATH" output/FileIQApp.app
-          cd output && zip -r FileIQApp-simulator.zip FileIQApp.app
-          ls -lh FileIQApp-simulator.zip
-
-      - name: Upload simulator .app
+      - name: Upload simulator app
         uses: actions/upload-artifact@v4
         with:
           name: FileIQ-iOS-Simulator
-          path: output/FileIQApp-simulator.zip
+          path: FileIQBuild/build
           retention-days: 7
 
       - name: Upload build logs
