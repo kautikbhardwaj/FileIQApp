@@ -1,0 +1,41 @@
+<!--
+  ADD THESE PERMISSIONS to android/app/src/main/AndroidManifest.xml
+  inside the <manifest> block (before <application>).
+-->
+
+<!-- ── Storage: Android 12 and below ── -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+  android:maxSdkVersion="32" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+  android:maxSdkVersion="29" />
+
+<!-- ── Storage: Android 13+ (granular) ── -->
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+<!-- ── Manage all files (Android 11+, optional) ── -->
+<!-- Only request if targeting full filesystem access.
+     Requires special Play Store approval.
+     Comment this out to ship without it. -->
+<!--
+<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+-->
+
+<!-- ── Internet (not needed for free version, needed for Pro) ── -->
+<!-- <uses-permission android:name="android.permission.INTERNET" /> -->
+
+<!--
+  ADD THIS inside the <application> block for Android 11+ file access:
+-->
+<!--
+<provider
+  android:name="androidx.core.content.FileProvider"
+  android:authorities="${applicationId}.provider"
+  android:exported="false"
+  android:grantUriPermissions="true">
+  <meta-data
+    android:name="android.support.FILE_PROVIDER_PATHS"
+    android:resource="@xml/file_provider_paths" />
+</provider>
+-->

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
+<!--
+  ADD THESE KEYS to your existing ios/FileIQApp/Info.plist
+  inside the root <dict> block.
+  Required for App Store submission.
+-->
+
+<plist version="1.0">
+<dict>
+
+  <!-- ── Photo Library (Camera Roll access) ── -->
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>FileIQ needs access to your photo library to list photos and videos so you can move them to Google Drive and free up storage space.</string>
+
+  <!-- ── Read-only photo access (iOS 14+) ── -->
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>FileIQ needs access to save files to your photo library.</string>
+
+  <!-- ── File provider (for Files app integration) ── -->
+  <key>UIFileSharingEnabled</key>
+  <true/>
+
+  <key>LSSupportsOpeningDocumentsInPlace</key>
+  <true/>
+
+  <!-- ── URL schemes that can be opened (Drive check) ── -->
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>googledrive</string>
+    <string>comgoogledrivefiles</string>
+  </array>
+
+  <!-- ── App uses non-exempt encryption: NO ── -->
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+
+</dict>
+</plist>

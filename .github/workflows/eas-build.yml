@@ -1,0 +1,54 @@
+name: Expo EAS Build (iOS)
+
+# ─────────────────────────────────────────────
+#  This workflow uses Expo's build servers
+#  to create an iOS build you can install on
+#  your iPhone WITHOUT a Mac or Apple cert.
+#
+#  SETUP REQUIRED (one time):
+#   1. Create free account at expo.dev
+#   2. Run: npx eas-cli login
+#   3. Run: npx eas-cli build:configure
+#   4. Add EXPO_TOKEN secret to this repo
+#      GitHub repo → Settings → Secrets → Actions
+#      Name: EXPO_TOKEN
+#      Value: (from expo.dev → Account → Access tokens)
+# ─────────────────────────────────────────────
+on:
+  workflow_dispatch:          # Manual trigger only
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview            # .ipa you can install via TestFlight
+          - development        # dev build with Expo DevTools
+          - production         # App Store build
+
+jobs:
+  eas-build:
+    name: EAS iOS Build
+    runs-on: ubuntu-latest    # Expo's servers do the Mac work
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build on EAS
+        run: eas build --platform ios --profile ${{ inputs.profile }} --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

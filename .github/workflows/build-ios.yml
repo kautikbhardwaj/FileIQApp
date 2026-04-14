@@ -1,0 +1,80 @@
+name: Build FileIQ iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Initialize React Native project
+        run: |
+          npx @react-native-community/cli@13.6.9 init FileIQBuild --version 0.73.6 --directory FileIQBuild
+
+      - name: Copy FileIQ source files
+        run: |
+          cp App.js FileIQBuild/App.js
+          cp -r src FileIQBuild/src
+
+      - name: Install extra dependencies in FileIQBuild
+        run: |
+          cd FileIQBuild
+          npm install --legacy-peer-deps \
+            @react-native-camera-roll/camera-roll \
+            @react-navigation/bottom-tabs \
+            @react-navigation/native \
+            @react-navigation/stack \
+            react-native-fs \
+            react-native-share \
+            react-native-vector-icons \
+            @shopify/flash-list \
+            react-native-permissions \
+            react-native-device-info \
+            date-fns \
+            lodash
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: FileIQBuild/ios/Pods
+          key: pods-${{ hashFiles('FileIQBuild/ios/Podfile.lock') }}
+          restore-keys: pods-
+
+      - name: Install CocoaPods
+        run: |
+          cd FileIQBuild/ios
+          pod install --repo-update
+
+      - name: Build iOS (unsigned)
+        run: |
+          cd FileIQBuild
+          xcodebuild \
+            -workspace ios/FileIQBuild.xcworkspace \
+            -scheme FileIQBuild \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build | xcpretty --color
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: ~/Library/Logs/
+          retention-days: 5
