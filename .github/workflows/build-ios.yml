@@ -67,58 +67,46 @@ jobs:
             -scheme FileIQBuild \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ./build \
             CODE_SIGNING_ALLOWED=NO \
             clean build | xcpretty --color
 
-      - name: Find .app path
+      - name: Boot simulator, install and screenshot
         run: |
-          APP=$(find FileIQBuild/build -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
-          echo "APP_PATH=$APP" >> $GITHUB_ENV
-          echo "Found: $APP"
+          # Use known iPhone 16 iOS 18.5 UDID from simulator list
+          UDID="94090282-6E9E-4A21-AAA3-3D6CFD0F3C55"
 
-      - name: Boot simulator and take screenshots
-        run: |
-          # List all available simulators for debugging
-          xcrun simctl list devices available
-
-          # Get first available iPhone UDID
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone" | grep -v "unavailable" | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1)
-          echo "Using simulator: $UDID"
-
-          # Boot it
-          xcrun simctl boot "$UDID"
+          # Boot simulator
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
           sleep 5
 
-          # Install and launch app
-          BUNDLE_ID=$(defaults read "$(pwd)/$APP_PATH/Info" CFBundleIdentifier 2>/dev/null || echo "org.reactjs.native.example.FileIQBuild")
-          echo "Bundle ID: $BUNDLE_ID"
+          # Get absolute path to .app
+          APP_PATH=$(find "$(pwd)/FileIQBuild/build" -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
+          echo "App path: $APP_PATH"
+
+          # Install app
           xcrun simctl install "$UDID" "$APP_PATH"
-          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+
+          # Launch app
+          xcrun simctl launch "$UDID" org.reactjs.native.example.FileIQBuild
           sleep 10
 
           # Take screenshots
           mkdir -p screenshots
-          xcrun simctl io "$UDID" screenshot screenshots/screen1.png
+          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen1.png"
           sleep 3
-          xcrun simctl io "$UDID" screenshot screenshots/screen2.png
+          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen2.png"
           sleep 3
-          xcrun simctl io "$UDID" screenshot screenshots/screen3.png
-          echo "Screenshots done"
+          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen3.png"
+          ls -lh screenshots/
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
           name: FileIQ-Screenshots
           path: screenshots/
-          retention-days: 7
-
-      - name: Upload simulator app
-        uses: actions/upload-artifact@v4
-        with:
-          name: FileIQ-iOS-Simulator
-          path: FileIQBuild/build
           retention-days: 7
 
       - name: Upload build logs
