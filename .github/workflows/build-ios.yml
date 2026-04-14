@@ -40,7 +40,6 @@ jobs:
             @react-navigation/stack@6.3.29 \
             react-native-fs@2.20.0 \
             react-native-gesture-handler@2.14.0 \
-            react-native-reanimated@3.6.0 \
             react-native-safe-area-context@4.8.2 \
             react-native-screens@3.29.0 \
             react-native-share@10.1.0 \
@@ -60,7 +59,6 @@ jobs:
             --entry-file index.js \
             --bundle-output ios/main.jsbundle \
             --assets-dest ios/assets
-          echo "Bundle size: $(ls -lh ios/main.jsbundle | awk '{print $5}')"
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
@@ -74,47 +72,39 @@ jobs:
           cd FileIQBuild/ios
           pod install --repo-update
 
-      - name: Build iOS simulator app
+      - name: Build for real device (arm64)
         run: |
           cd FileIQBuild
           xcodebuild \
             -workspace ios/FileIQBuild.xcworkspace \
             -scheme FileIQBuild \
             -configuration Release \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath ./build \
-            BUNDLE_FILE=main.jsbundle \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             clean build | xcpretty --color
 
-      - name: Boot simulator, install and screenshot
+      - name: Package into .ipa
         run: |
-          UDID="94090282-6E9E-4A21-AAA3-3D6CFD0F3C55"
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          sleep 5
+          cd FileIQBuild
+          APP=$(find build -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
+          echo "App: $APP"
+          mkdir -p output/Payload
+          cp -r "$APP" output/Payload/
+          cd output
+          zip -r FileIQ.ipa Payload
+          ls -lh FileIQ.ipa
 
-          APP_PATH=$(find "$(pwd)/FileIQBuild/build" -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
-          echo "App: $APP_PATH"
-
-          xcrun simctl install "$UDID" "$APP_PATH"
-          xcrun simctl launch "$UDID" org.reactjs.native.example.FileIQBuild
-          sleep 12
-
-          mkdir -p screenshots
-          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen1.png"
-          sleep 3
-          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen2.png"
-          sleep 3
-          xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen3.png"
-          ls -lh screenshots/
-
-      - name: Upload screenshots
+      - name: Upload .ipa
         uses: actions/upload-artifact@v4
         with:
-          name: FileIQ-Screenshots
-          path: screenshots/
+          name: FileIQ-Device-IPA
+          path: FileIQBuild/output/FileIQ.ipa
           retention-days: 7
 
       - name: Upload build logs
