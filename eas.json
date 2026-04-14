@@ -7,8 +7,7 @@
     "preview": {
       "ios": {
         "simulator": true
-      },
-      "prebuildCommand": "echo skip"
+      }
     },
     "development": {
       "developmentClient": true,
