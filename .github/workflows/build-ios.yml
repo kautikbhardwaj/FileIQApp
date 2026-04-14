@@ -40,7 +40,7 @@ jobs:
             @react-navigation/stack \
             react-native-fs \
             react-native-gesture-handler \
-            react-native-reanimated \
+            react-native-reanimated@3.6.0 \
             react-native-safe-area-context \
             react-native-screens \
             react-native-share \
