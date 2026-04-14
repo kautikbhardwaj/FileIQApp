@@ -47,6 +47,18 @@ jobs:
             date-fns \
             lodash
 
+      - name: Bundle JavaScript
+        run: |
+          cd FileIQBuild
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output ios/main.jsbundle \
+            --assets-dest ios/assets
+          echo "JS bundle created"
+          ls -lh ios/main.jsbundle
+
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -65,35 +77,28 @@ jobs:
           xcodebuild \
             -workspace ios/FileIQBuild.xcworkspace \
             -scheme FileIQBuild \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ./build \
+            BUNDLE_FILE=main.jsbundle \
             CODE_SIGNING_ALLOWED=NO \
             clean build | xcpretty --color
 
       - name: Boot simulator, install and screenshot
         run: |
-          # Use known iPhone 16 iOS 18.5 UDID from simulator list
           UDID="94090282-6E9E-4A21-AAA3-3D6CFD0F3C55"
-
-          # Boot simulator
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
           sleep 5
 
-          # Get absolute path to .app
           APP_PATH=$(find "$(pwd)/FileIQBuild/build" -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
-          echo "App path: $APP_PATH"
+          echo "App: $APP_PATH"
 
-          # Install app
           xcrun simctl install "$UDID" "$APP_PATH"
-
-          # Launch app
           xcrun simctl launch "$UDID" org.reactjs.native.example.FileIQBuild
-          sleep 10
+          sleep 12
 
-          # Take screenshots
           mkdir -p screenshots
           xcrun simctl io "$UDID" screenshot "$(pwd)/screenshots/screen1.png"
           sleep 3
