@@ -30,6 +30,29 @@ jobs:
           cp App.js FileIQBuild/App.js
           cp -r src FileIQBuild/src
 
+      - name: Patch Info.plist
+        run: |
+          PLIST="FileIQBuild/ios/FileIQBuild/Info.plist"
+
+          # App name
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName FileIQ" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string FileIQ" "$PLIST"
+
+          # Photo library permission
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'FileIQ needs access to your photo library to list and manage your photos and videos.'" "$PLIST" 2>/dev/null || true
+
+          # Google Drive URL scheme
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes array" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:0 string googledrive" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:1 string comgoogledrivefiles" "$PLIST" 2>/dev/null || true
+
+          # Allow arbitrary loads (WiFi + mobile data)
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$PLIST" 2>/dev/null || true
+
+          echo "Info.plist patched"
+          cat "$PLIST"
+
       - name: Install pinned dependencies
         run: |
           cd FileIQBuild
@@ -47,6 +70,7 @@ jobs:
             @shopify/flash-list@1.6.3 \
             react-native-permissions@4.1.5 \
             react-native-device-info@11.1.0 \
+            react-native-document-picker@9.1.1 \
             date-fns@3.3.1 \
             lodash@4.17.21
 
