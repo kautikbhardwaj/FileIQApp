@@ -78,7 +78,7 @@ jobs:
           echo "APP_PATH=$APP" >> $GITHUB_ENV
           echo "Found: $APP"
 
-      - name: Boot iPhone 15 simulator
+      - name: Boot available simulator
         run: |
           UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "Plus\|Pro" | head -1 | awk -F'[()]' '{print $2}')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
