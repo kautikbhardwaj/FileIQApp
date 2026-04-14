@@ -30,7 +30,7 @@ jobs:
           cp App.js FileIQBuild/App.js
           cp -r src FileIQBuild/src
 
-      - name: Install extra dependencies in FileIQBuild
+      - name: Install extra dependencies
         run: |
           cd FileIQBuild
           npm install --legacy-peer-deps \
@@ -59,7 +59,7 @@ jobs:
           cd FileIQBuild/ios
           pod install --repo-update
 
-      - name: Build iOS (unsigned)
+      - name: Build iOS simulator app
         run: |
           cd FileIQBuild
           xcodebuild \
@@ -68,8 +68,69 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -derivedDataPath ./build \
             CODE_SIGNING_ALLOWED=NO \
             clean build | xcpretty --color
+
+      - name: Find .app path
+        run: |
+          APP=$(find FileIQBuild/build -name "*.app" -not -path "*/PackageFrameworks/*" | head -1)
+          echo "APP_PATH=$APP" >> $GITHUB_ENV
+          echo "Found: $APP"
+
+      - name: Boot iPhone 15 simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "Plus\|Pro" | head -1 | awk -F'[()]' '{print $2}')
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "Booting simulator: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          echo "Simulator booted"
+
+      - name: Install app on simulator
+        run: |
+          xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
+          echo "App installed"
+
+      - name: Launch app and wait
+        run: |
+          BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier)
+          echo "Bundle ID: $BUNDLE_ID"
+          xcrun simctl launch "$SIMULATOR_UDID" "$BUNDLE_ID"
+          echo "App launched — waiting 8 seconds for it to load..."
+          sleep 8
+
+      - name: Take screenshots
+        run: |
+          mkdir -p screenshots
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen1-launch.png
+          sleep 3
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen2-home.png
+          sleep 3
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/screen3-view.png
+          echo "Screenshots taken"
+          ls -lh screenshots/
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileIQ-Screenshots
+          path: screenshots/
+          retention-days: 7
+
+      - name: Package .app for download
+        run: |
+          mkdir -p output
+          cp -r "$APP_PATH" output/FileIQApp.app
+          cd output && zip -r FileIQApp-simulator.zip FileIQApp.app
+          ls -lh FileIQApp-simulator.zip
+
+      - name: Upload simulator .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileIQ-iOS-Simulator
+          path: output/FileIQApp-simulator.zip
+          retention-days: 7
 
       - name: Upload build logs
         if: always()
@@ -77,4 +138,4 @@ jobs:
         with:
           name: build-logs
           path: ~/Library/Logs/
-          retention-days: 5
+          retention-days: 3
