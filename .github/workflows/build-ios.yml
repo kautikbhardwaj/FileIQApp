@@ -30,26 +30,26 @@ jobs:
           cp App.js FileIQBuild/App.js
           cp -r src FileIQBuild/src
 
-      - name: Install extra dependencies
+      - name: Install pinned dependencies
         run: |
           cd FileIQBuild
           npm install --legacy-peer-deps \
-            @react-native-camera-roll/camera-roll \
-            @react-navigation/bottom-tabs \
-            @react-navigation/native \
-            @react-navigation/stack \
-            react-native-fs \
-            react-native-gesture-handler \
+            @react-native-camera-roll/camera-roll@7.4.0 \
+            @react-navigation/bottom-tabs@6.5.20 \
+            @react-navigation/native@6.1.17 \
+            @react-navigation/stack@6.3.29 \
+            react-native-fs@2.20.0 \
+            react-native-gesture-handler@2.14.0 \
             react-native-reanimated@3.6.0 \
-            react-native-safe-area-context \
-            react-native-screens \
-            react-native-share \
-            react-native-vector-icons \
-            @shopify/flash-list \
-            react-native-permissions \
-            react-native-device-info \
-            date-fns \
-            lodash
+            react-native-safe-area-context@4.8.2 \
+            react-native-screens@3.29.0 \
+            react-native-share@10.1.0 \
+            react-native-vector-icons@10.0.3 \
+            @shopify/flash-list@1.6.3 \
+            react-native-permissions@4.1.5 \
+            react-native-device-info@11.1.0 \
+            date-fns@3.3.1 \
+            lodash@4.17.21
 
       - name: Bundle JavaScript
         run: |
@@ -60,8 +60,7 @@ jobs:
             --entry-file index.js \
             --bundle-output ios/main.jsbundle \
             --assets-dest ios/assets
-          echo "JS bundle created"
-          ls -lh ios/main.jsbundle
+          echo "Bundle size: $(ls -lh ios/main.jsbundle | awk '{print $5}')"
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
